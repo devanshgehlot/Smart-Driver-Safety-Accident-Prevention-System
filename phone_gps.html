@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone GPS Transmitter - Driver Safety System</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #05000F;
+            --panel: rgba(10, 0, 34, 0.75);
+            --card: rgba(26, 0, 51, 0.6);
+            --accent: #00FFFF;
+            --green: #00FF99;
+            --red: #FF0044;
+            --amber: #FFB800;
+            --purple: #8B5CF6;
+            --text: #CCCCFF;
+            --muted: #556677;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at center, #1a0033 0%, #05000f 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid var(--accent);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 255, 255, 0.15);
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+
+        .pulse-indicator {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(0, 255, 153, 0.1);
+            border: 3px solid var(--green);
+            margin: 0 auto 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        .pulse-indicator.searching {
+            border-color: var(--amber);
+            background: rgba(255, 184, 0, 0.1);
+            animation: pulse-amber 1.8s infinite;
+        }
+
+        .pulse-indicator.active {
+            border-color: var(--green);
+            background: rgba(0, 255, 153, 0.15);
+            animation: pulse-green 1.8s infinite;
+        }
+
+        .pulse-indicator.error {
+            border-color: var(--red);
+            background: rgba(255, 0, 68, 0.1);
+            animation: none;
+        }
+
+        .pulse-indicator svg {
+            width: 36px;
+            height: 36px;
+            fill: currentColor;
+            transition: color 0.4s ease;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 153, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(0, 255, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 153, 0); }
+        }
+
+        @keyframes pulse-amber {
+            0% { box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 184, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 184, 0, 0); }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-badge.active {
+            color: var(--green);
+            background: rgba(0, 255, 153, 0.08);
+            border-color: rgba(0, 255, 153, 0.2);
+        }
+
+        .status-badge.searching {
+            color: var(--amber);
+            background: rgba(255, 184, 0, 0.08);
+            border-color: rgba(255, 184, 0, 0.2);
+        }
+
+        .status-badge.error {
+            color: var(--red);
+            background: rgba(255, 0, 68, 0.08);
+            border-color: rgba(255, 0, 68, 0.2);
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .data-card {
+            background: var(--card);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .data-card.full-width {
+            grid-column: span 2;
+        }
+
+        .data-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .data-card .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .data-card .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #FFF;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--green) 0%, #00cc7a 100%);
+            color: #05000F;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--red) 0%, #cc0033 100%);
+            color: white;
+            margin-top: 12px;
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.98);
+        }
+
+        .footer-note {
+            margin-top: 24px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .config-toggle {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 16px;
+        }
+
+        .config-panel {
+            display: none;
+            margin-top: 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px dashed var(--muted);
+            text-align: left;
+        }
+
+        .config-panel label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .config-panel input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            background: #1A0033;
+            border: 1px solid var(--muted);
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>📡 GPS TRANSMITTER</h1>
+            <p>Driver Safety System Mobile Gateway</p>
+        </div>
+
+        <div id="status-pulse" class="pulse-indicator searching">
+            <svg viewBox="0 0 24 24">
+                <path d="M12,2A10,10,0,0,0,2,12a9.89,9.89,0,0,0,2.26,6.33L3,21a1,1,0,0,0,1,1l2.67-1.26A9.9,9.9,0,0,0,12,22,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+        </div>
+
+        <div id="status-text" class="status-badge searching">Initializing GPS...</div>
+
+        <div class="data-grid">
+            <div class="data-card">
+                <div class="label">Latitude</div>
+                <div id="lat-val" class="value">--</div>
+            </div>
+            <div class="data-card">
+                <div class="label">Longitude</div>
+                <div id="lng-val" class="value">--</div>
+            </div>
+            <div class="data-card">
+                <div class="label">Accuracy</div>
+                <div id="accuracy-val" class="value">--</div>
+            </div>
+            <div class="data-card">
+                <div class="label">Last Updated</div>
+                <div id="time-val" class="value">Never</div>
+            </div>
+        </div>
+
+        <button id="action-btn" class="btn btn-primary" onclick="toggleTracking()">START TRANSMITTING</button>
+
+        <button class="config-toggle" onclick="toggleConfig()">Database Settings</button>
+
+        <div id="config-panel" class="config-panel">
+            <label for="db-url">Firebase Database URL</label>
+            <input type="text" id="db-url" value="https://driver-drowsiness-37a69-default-rtdb.asia-southeast1.firebasedatabase.app/">
+            
+            <label for="db-path">Database Node Path</label>
+            <input type="text" id="db-path" value="esp32">
+
+            <label for="db-secret">Database Secret (Auth Token)</label>
+            <input type="text" id="db-secret" value="" placeholder="Optional auth token/secret">
+            
+            <button class="btn btn-primary" style="padding: 8px; font-size: 0.9rem;" onclick="saveConfig()">Save Configurations</button>
+        </div>
+
+        <div class="footer-note">
+            Ensure your phone has high-accuracy GPS enabled.<br>
+            Keep this tab active while driving.
+        </div>
+    </div>
+
+    <script>
+        let watchId = null;
+        let isTracking = false;
+        let dbUrl = localStorage.getItem('gps_db_url') || 'https://driver-drowsiness-37a69-default-rtdb.asia-southeast1.firebasedatabase.app/';
+        let dbPath = localStorage.getItem('gps_db_path') || 'esp32';
+        let dbSecret = localStorage.getItem('gps_db_secret') || '';
+
+        document.getElementById('db-url').value = dbUrl;
+        document.getElementById('db-path').value = dbPath;
+        document.getElementById('db-secret').value = dbSecret;
+
+        function toggleConfig() {
+            const panel = document.getElementById('config-panel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function saveConfig() {
+            dbUrl = document.getElementById('db-url').value.trim();
+            dbPath = document.getElementById('db-path').value.trim();
+            dbSecret = document.getElementById('db-secret').value.trim();
+            if (!dbUrl.endsWith('/')) dbUrl += '/';
+            
+            localStorage.setItem('gps_db_url', dbUrl);
+            localStorage.setItem('gps_db_path', dbPath);
+            localStorage.setItem('gps_db_secret', dbSecret);
+            alert('Configurations saved successfully!');
+            toggleConfig();
+        }
+
+        function updateUI(status, text, lat = '--', lng = '--', speed = '0.0 km/h', accuracy = '--', time = 'Never') {
+            const pulse = document.getElementById('status-pulse');
+            const statusBadge = document.getElementById('status-text');
+            const actionBtn = document.getElementById('action-btn');
+
+            pulse.className = `pulse-indicator ${status}`;
+            statusBadge.className = `status-badge ${status}`;
+            statusBadge.innerText = text;
+
+            document.getElementById('lat-val').innerText = lat;
+            document.getElementById('lng-val').innerText = lng;
+            document.getElementById('accuracy-val').innerText = accuracy;
+            document.getElementById('time-val').innerText = time;
+
+            if (isTracking) {
+                actionBtn.innerText = 'STOP TRANSMITTING';
+                actionBtn.className = 'btn btn-secondary';
+            } else {
+                actionBtn.innerText = 'START TRANSMITTING';
+                actionBtn.className = 'btn btn-primary';
+            }
+        }
+
+        function toggleTracking() {
+            if (isTracking) {
+                stopTracking();
+            } else {
+                startTracking();
+            }
+        }
+
+        function startTracking() {
+            if (!("geolocation" in navigator)) {
+                updateUI('error', 'Geolocation not supported', '--', '--', '--', '--', 'Error');
+                alert("Geolocation is not supported by your browser or is blocked because this page is not running over a secure (HTTPS) connection.");
+                return;
+            }
+
+            isTracking = true;
+            updateUI('searching', 'Searching for GPS signals...');
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            watchId = navigator.geolocation.watchPosition(onSuccess, onError, options);
+        }
+
+        function stopTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            isTracking = false;
+            updateUI('searching', 'Transmitter Idle');
+        }
+
+        async function onSuccess(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            // Convert m/s to km/h, default to 0 if null
+            let speedKmh = 0;
+            if (position.coords.speed !== null && position.coords.speed > 0) {
+                speedKmh = Math.round(position.coords.speed * 3.6 * 10) / 10;
+            }
+            const accuracy = Math.round(position.coords.accuracy) + ' m';
+            const timestamp = new Date(position.timestamp).toLocaleTimeString();
+
+            updateUI('active', 'Transmitting GPS Data ✓', lat.toFixed(6) + '°', lng.toFixed(6) + '°', speedKmh + ' km/h', accuracy, timestamp);
+
+            // Construct Firebase database endpoint
+            let targetUrl = `${dbUrl}${dbPath}.json`;
+            if (dbSecret) {
+                targetUrl += `?auth=${dbSecret}`;
+            }
+
+            try {
+                // PATCH request to merge with existing esp32 fields like magnitude, distance, etc.
+                const response = await fetch(targetUrl, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        gps_lat: lat,
+                        gps_lng: lng,
+                        gps_valid: true,
+                        speed_kmh: speedKmh
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Firebase returned status ${response.status}`);
+                }
+            } catch (err) {
+                console.error("Firebase update failed:", err);
+                updateUI('error', 'Firebase connection error', lat.toFixed(6) + '°', lng.toFixed(6) + '°', speedKmh + ' km/h', accuracy, `Failed to upload: ${err.message}`);
+            }
+        }
+
+        function onError(error) {
+            console.warn(`ERROR(${error.code}): ${error.message}`);
+            let errorMsg = "GPS Error";
+            if (error.code === 1) {
+                errorMsg = "Permission denied";
+            } else if (error.code === 2) {
+                errorMsg = "Position unavailable";
+            } else if (error.code === 3) {
+                errorMsg = "Timeout";
+            }
+            updateUI('error', errorMsg);
+        }
+
+        // Initialize UI
+        updateUI('searching', 'Transmitter Idle');
+    </script>
+</body>
+</html>

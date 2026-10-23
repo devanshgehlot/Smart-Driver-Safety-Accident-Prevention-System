@@ -1,0 +1,8 @@
+opencv-python
+numpy
+mediapipe
+matplotlib
+Pillow
+firebase-admin
+requests
+python-dotenv
